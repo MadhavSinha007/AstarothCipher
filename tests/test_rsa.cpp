@@ -3,7 +3,6 @@
 #include <cassert>
 #include <cstring>
 
-// Simple test harness
 static int pass_count = 0, fail_count = 0;
 #define TEST(name, expr) \
     do { \
@@ -14,7 +13,7 @@ static int pass_count = 0, fail_count = 0;
 int main() {
     std::cout << "=== RSA Key Tests ===\n";
 
-    // 1. Generate key pair (use 2048 in tests for speed; 4096 in production)
+    // 1. Generate key pair (2048 in tests for speed; use 4096 in production)
     std::cout << "\n[1] Key generation (2048-bit for speed)...\n";
     EVP_PKEY_ptr keypair;
     try {
@@ -42,12 +41,12 @@ int main() {
     std::vector<unsigned char> aes_key(32, 0xAB); // fake 256-bit key
 
     auto enc = RSAKeyManager::encrypt(loaded_pub.get(), aes_key);
-    TEST("ciphertext not empty",         !enc.empty());
-    TEST("ciphertext != plaintext",       enc != aes_key);
+    TEST("ciphertext not empty",     !enc.empty());
+    TEST("ciphertext != plaintext",   enc != aes_key);
 
     auto dec = RSAKeyManager::decrypt(loaded_priv.get(), enc);
-    TEST("decrypted length matches",      dec.size() == aes_key.size());
-    TEST("decrypted content matches",     dec == aes_key);
+    TEST("decrypted length matches",  dec.size() == aes_key.size());
+    TEST("decrypted content matches", dec == aes_key);
 
     // 4. Wrong key should fail
     std::cout << "\n[4] Wrong key rejection...\n";

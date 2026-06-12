@@ -6,8 +6,7 @@
 #include <openssl/err.h>
 #include <openssl/rsa.h>
 
-// ── helpers ──────────────────────────────────────────────────────────────────
-
+// Print all pending OpenSSL errors to stderr
 void RSAKeyManager::print_openssl_error(const std::string& context) {
     unsigned long err;
     char buf[256];
@@ -17,8 +16,7 @@ void RSAKeyManager::print_openssl_error(const std::string& context) {
     }
 }
 
-// ── key generation ────────────────────────────────────────────────────────────
-
+// Generate new RSA key pair with specified bit length
 EVP_PKEY_ptr RSAKeyManager::generate_keypair(int bits) {
     EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, nullptr);
     if (!ctx) throw std::runtime_error("EVP_PKEY_CTX_new_id failed");
@@ -37,8 +35,7 @@ EVP_PKEY_ptr RSAKeyManager::generate_keypair(int bits) {
     return EVP_PKEY_ptr(pkey);
 }
 
-// ── save / load ───────────────────────────────────────────────────────────────
-
+// Save private key to PEM file (encrypted if passphrase provided)
 bool RSAKeyManager::save_private_key(EVP_PKEY* key, const std::string& path,
                                       const std::string& passphrase) {
     FILE* fp = fopen(path.c_str(), "wb");
@@ -46,8 +43,10 @@ bool RSAKeyManager::save_private_key(EVP_PKEY* key, const std::string& path,
 
     int ok;
     if (passphrase.empty()) {
+        // No encryption
         ok = PEM_write_PrivateKey(fp, key, nullptr, nullptr, 0, nullptr, nullptr);
     } else {
+        // Encrypt with AES-256-CBC
         ok = PEM_write_PrivateKey(fp, key, EVP_aes_256_cbc(),
             reinterpret_cast<const unsigned char*>(passphrase.c_str()),
             static_cast<int>(passphrase.size()), nullptr, nullptr);
@@ -57,6 +56,7 @@ bool RSAKeyManager::save_private_key(EVP_PKEY* key, const std::string& path,
     return true;
 }
 
+// Save public key to PEM file (never encrypted)
 bool RSAKeyManager::save_public_key(EVP_PKEY* key, const std::string& path) {
     FILE* fp = fopen(path.c_str(), "wb");
     if (!fp) { std::cerr << "Cannot open " << path << "\n"; return false; }
@@ -66,6 +66,7 @@ bool RSAKeyManager::save_public_key(EVP_PKEY* key, const std::string& path) {
     return true;
 }
 
+// Load private key from PEM file (decrypt if passphrase provided)
 EVP_PKEY_ptr RSAKeyManager::load_private_key(const std::string& path,
                                                const std::string& passphrase) {
     FILE* fp = fopen(path.c_str(), "rb");
@@ -75,26 +76,31 @@ EVP_PKEY_ptr RSAKeyManager::load_private_key(const std::string& path,
     if (passphrase.empty()) {
         key = PEM_read_PrivateKey(fp, nullptr, nullptr, nullptr);
     } else {
-        // Pass passphrase as void* (OpenSSL reads it directly)
         key = PEM_read_PrivateKey(fp, nullptr, nullptr,
             const_cast<char*>(passphrase.c_str()));
     }
     fclose(fp);
-    if (!key) { print_openssl_error("load_private_key"); throw std::runtime_error("Failed to load private key"); }
+    if (!key) {
+        print_openssl_error("load_private_key");
+        throw std::runtime_error("Failed to load private key");
+    }
     return EVP_PKEY_ptr(key);
 }
 
+// Load public key from PEM file
 EVP_PKEY_ptr RSAKeyManager::load_public_key(const std::string& path) {
     FILE* fp = fopen(path.c_str(), "rb");
     if (!fp) throw std::runtime_error("Cannot open public key: " + path);
     EVP_PKEY* key = PEM_read_PUBKEY(fp, nullptr, nullptr, nullptr);
     fclose(fp);
-    if (!key) { print_openssl_error("load_public_key"); throw std::runtime_error("Failed to load public key"); }
+    if (!key) {
+        print_openssl_error("load_public_key");
+        throw std::runtime_error("Failed to load public key");
+    }
     return EVP_PKEY_ptr(key);
 }
 
-// ── encrypt / decrypt with OAEP padding ──────────────────────────────────────
-
+// Encrypt data with RSA public key using OAEP padding with SHA-256
 std::vector<unsigned char> RSAKeyManager::encrypt(
         EVP_PKEY* pub_key, const std::vector<unsigned char>& plaintext) {
 
@@ -104,19 +110,20 @@ std::vector<unsigned char> RSAKeyManager::encrypt(
     if (EVP_PKEY_encrypt_init(ctx) <= 0)
         throw std::runtime_error("EVP_PKEY_encrypt_init failed");
 
-    // OAEP with SHA-256 is best practice for RSA encryption
+    // Use OAEP padding (more secure than PKCS#1 v1.5)
     if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) <= 0)
         throw std::runtime_error("set_rsa_padding OAEP failed");
 
     if (EVP_PKEY_CTX_set_rsa_oaep_md(ctx, EVP_sha256()) <= 0)
         throw std::runtime_error("set_rsa_oaep_md failed");
 
-    // First call: determine output buffer size
+    // First call gets required output size
     size_t outlen = 0;
     if (EVP_PKEY_encrypt(ctx, nullptr, &outlen, plaintext.data(), plaintext.size()) <= 0)
         throw std::runtime_error("EVP_PKEY_encrypt (size query) failed");
 
     std::vector<unsigned char> out(outlen);
+    // Second call actually encrypts
     if (EVP_PKEY_encrypt(ctx, out.data(), &outlen, plaintext.data(), plaintext.size()) <= 0) {
         print_openssl_error("RSA encrypt");
         throw std::runtime_error("EVP_PKEY_encrypt failed");
@@ -127,6 +134,7 @@ std::vector<unsigned char> RSAKeyManager::encrypt(
     return out;
 }
 
+// Decrypt data with RSA private key using OAEP padding
 std::vector<unsigned char> RSAKeyManager::decrypt(
         EVP_PKEY* priv_key, const std::vector<unsigned char>& ciphertext) {
 
@@ -142,11 +150,13 @@ std::vector<unsigned char> RSAKeyManager::decrypt(
     if (EVP_PKEY_CTX_set_rsa_oaep_md(ctx, EVP_sha256()) <= 0)
         throw std::runtime_error("set_rsa_oaep_md failed");
 
+    // First call gets required output size
     size_t outlen = 0;
     if (EVP_PKEY_decrypt(ctx, nullptr, &outlen, ciphertext.data(), ciphertext.size()) <= 0)
         throw std::runtime_error("EVP_PKEY_decrypt (size query) failed");
 
     std::vector<unsigned char> out(outlen);
+    // Second call actually decrypts
     if (EVP_PKEY_decrypt(ctx, out.data(), &outlen, ciphertext.data(), ciphertext.size()) <= 0) {
         print_openssl_error("RSA decrypt");
         throw std::runtime_error("EVP_PKEY_decrypt failed");
