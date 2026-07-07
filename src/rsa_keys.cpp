@@ -101,8 +101,8 @@ EVP_PKEY_ptr RSAKeyManager::load_public_key(const std::string& path) {
 }
 
 // Encrypt data with RSA public key using OAEP padding with SHA-256
-std::vector<unsigned char> RSAKeyManager::encrypt(
-        EVP_PKEY* pub_key, const std::vector<unsigned char>& plaintext) {
+SecureVector RSAKeyManager::encrypt(
+        EVP_PKEY* pub_key, const SecureVector& plaintext) {
 
     EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new(pub_key, nullptr);
     if (!ctx) throw std::runtime_error("EVP_PKEY_CTX_new failed");
@@ -122,7 +122,7 @@ std::vector<unsigned char> RSAKeyManager::encrypt(
     if (EVP_PKEY_encrypt(ctx, nullptr, &outlen, plaintext.data(), plaintext.size()) <= 0)
         throw std::runtime_error("EVP_PKEY_encrypt (size query) failed");
 
-    std::vector<unsigned char> out(outlen);
+    SecureVector out(outlen);
     // Second call actually encrypts
     if (EVP_PKEY_encrypt(ctx, out.data(), &outlen, plaintext.data(), plaintext.size()) <= 0) {
         print_openssl_error("RSA encrypt");
@@ -135,8 +135,8 @@ std::vector<unsigned char> RSAKeyManager::encrypt(
 }
 
 // Decrypt data with RSA private key using OAEP padding
-std::vector<unsigned char> RSAKeyManager::decrypt(
-        EVP_PKEY* priv_key, const std::vector<unsigned char>& ciphertext) {
+SecureVector RSAKeyManager::decrypt(
+        EVP_PKEY* priv_key, const SecureVector& ciphertext) {
 
     EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new(priv_key, nullptr);
     if (!ctx) throw std::runtime_error("EVP_PKEY_CTX_new failed");
@@ -155,7 +155,7 @@ std::vector<unsigned char> RSAKeyManager::decrypt(
     if (EVP_PKEY_decrypt(ctx, nullptr, &outlen, ciphertext.data(), ciphertext.size()) <= 0)
         throw std::runtime_error("EVP_PKEY_decrypt (size query) failed");
 
-    std::vector<unsigned char> out(outlen);
+    SecureVector out(outlen);
     // Second call actually decrypts
     if (EVP_PKEY_decrypt(ctx, out.data(), &outlen, ciphertext.data(), ciphertext.size()) <= 0) {
         print_openssl_error("RSA decrypt");

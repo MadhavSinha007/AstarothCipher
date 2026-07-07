@@ -1,4 +1,5 @@
 #pragma once
+#include "secure_alloc.h"
 #include <vector>
 #include <cstddef>
 
@@ -10,26 +11,26 @@ public:
     static constexpr int TAG_LEN = 16;   // 128-bit auth tag
 
     // Encrypt data, output ciphertext + authentication tag
-    static std::vector<unsigned char> encrypt(
-        const std::vector<unsigned char>& plaintext,
-        const std::vector<unsigned char>& key,
-        const std::vector<unsigned char>& iv,
-        std::vector<unsigned char>& tag_out,
-        const std::vector<unsigned char>& aad = {}
+    static SecureVector encrypt(
+        const SecureVector& plaintext,
+        const SecureVector& key,
+        const SecureVector& iv,
+        SecureVector& tag_out,
+        const SecureVector& aad = {}
     );
 
     // Decrypt data, verifies tag before returning plaintext
-    static std::vector<unsigned char> decrypt(
-        const std::vector<unsigned char>& ciphertext,
-        const std::vector<unsigned char>& key,
-        const std::vector<unsigned char>& iv,
-        const std::vector<unsigned char>& tag,
-        const std::vector<unsigned char>& aad = {}
+    static SecureVector decrypt(
+        const SecureVector& ciphertext,
+        const SecureVector& key,
+        const SecureVector& iv,
+        const SecureVector& tag,
+        const SecureVector& aad = {}
     );
 
     // Generate random key (32 bytes by default)
-    static std::vector<unsigned char> generate_key(int len = KEY_LEN);
+    static SecureVector generate_key(int len = KEY_LEN);
     
     // Generate random IV/nonce (12 bytes by default)
-    static std::vector<unsigned char> generate_iv (int len = IV_LEN);
+    static SecureVector generate_iv (int len = IV_LEN);
 };

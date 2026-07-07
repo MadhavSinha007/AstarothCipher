@@ -5,28 +5,28 @@
 #include <openssl/err.h>
 
 // Generate random key using cryptographically secure RNG
-std::vector<unsigned char> AESGCMCipher::generate_key(int len) {
-    std::vector<unsigned char> k(len);
+SecureVector AESGCMCipher::generate_key(int len) {
+    SecureVector k(len);
     if (RAND_bytes(k.data(), len) != 1)
         throw std::runtime_error("RAND_bytes failed for key");
     return k;
 }
 
 // Generate random initialization vector (nonce)
-std::vector<unsigned char> AESGCMCipher::generate_iv(int len) {
-    std::vector<unsigned char> v(len);
+SecureVector AESGCMCipher::generate_iv(int len) {
+    SecureVector v(len);
     if (RAND_bytes(v.data(), len) != 1)
         throw std::runtime_error("RAND_bytes failed for IV");
     return v;
 }
 
 // Encrypt data with AES-256-GCM, produces ciphertext + authentication tag
-std::vector<unsigned char> AESGCMCipher::encrypt(
-        const std::vector<unsigned char>& plaintext,
-        const std::vector<unsigned char>& key,
-        const std::vector<unsigned char>& iv,
-        std::vector<unsigned char>&       tag_out,
-        const std::vector<unsigned char>& aad) {
+SecureVector AESGCMCipher::encrypt(
+        const SecureVector& plaintext,
+        const SecureVector& key,
+        const SecureVector& iv,
+        SecureVector&       tag_out,
+        const SecureVector& aad) {
 
     // Validate inputs
     if (key.size() != KEY_LEN) throw std::invalid_argument("Key must be 32 bytes");
@@ -59,7 +59,7 @@ std::vector<unsigned char> AESGCMCipher::encrypt(
     }
 
     // Encrypt the actual data
-    std::vector<unsigned char> ciphertext(plaintext.size());
+    SecureVector ciphertext(plaintext.size());
     if (!plaintext.empty()) {
         if (EVP_EncryptUpdate(ctx, ciphertext.data(), &len,
                 plaintext.data(), plaintext.size()) != 1) {
@@ -86,12 +86,12 @@ std::vector<unsigned char> AESGCMCipher::encrypt(
 }
 
 // Decrypt AES-256-GCM data, verifies tag before returning plaintext
-std::vector<unsigned char> AESGCMCipher::decrypt(
-        const std::vector<unsigned char>& ciphertext,
-        const std::vector<unsigned char>& key,
-        const std::vector<unsigned char>& iv,
-        const std::vector<unsigned char>& tag,
-        const std::vector<unsigned char>& aad) {
+SecureVector AESGCMCipher::decrypt(
+        const SecureVector& ciphertext,
+        const SecureVector& key,
+        const SecureVector& iv,
+        const SecureVector& tag,
+        const SecureVector& aad) {
 
     // Validate inputs
     if (key.size() != KEY_LEN) throw std::invalid_argument("Key must be 32 bytes");
@@ -125,7 +125,7 @@ std::vector<unsigned char> AESGCMCipher::decrypt(
     }
 
     // Decrypt the ciphertext
-    std::vector<unsigned char> plaintext(ciphertext.size());
+    SecureVector plaintext(ciphertext.size());
     if (!ciphertext.empty()) {
         if (EVP_DecryptUpdate(ctx, plaintext.data(), &len,
                 ciphertext.data(), ciphertext.size()) != 1) {

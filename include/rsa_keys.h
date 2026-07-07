@@ -1,6 +1,6 @@
 #pragma once
+#include "secure_alloc.h"
 #include <string>
-#include <vector>
 #include <memory>
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
@@ -41,14 +41,14 @@ public:
     static EVP_PKEY_ptr load_public_key(const std::string& path);
 
     // Encrypts data using RSA public key
-    // Returns encrypted data as byte vector, empty vector on failure
-    static std::vector<unsigned char> encrypt(EVP_PKEY* pub_key,
-                                               const std::vector<unsigned char>& plaintext);
+    // Returns encrypted data as securely wiped byte vector, empty on failure
+    static SecureVector encrypt(EVP_PKEY* pub_key,
+                                const SecureVector& plaintext);
     
     // Decrypts data using RSA private key
-    // Returns decrypted data as byte vector, empty vector on failure
-    static std::vector<unsigned char> decrypt(EVP_PKEY* priv_key,
-                                               const std::vector<unsigned char>& ciphertext);
+    // Returns decrypted data as securely wiped byte vector, empty on failure
+    static SecureVector decrypt(EVP_PKEY* priv_key,
+                                const SecureVector& ciphertext);
 
     // Outputs OpenSSL error stack information to stderr with context prefix
     static void print_openssl_error(const std::string& context);
