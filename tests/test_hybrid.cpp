@@ -22,7 +22,7 @@ int main() {
     // ── 1. In-memory round-trip ───────────────────────────────────────────────
     std::cout << "\n[1] In-memory encrypt/decrypt round-trip...\n";
     std::string msg = "Top secret: AES-256-GCM + RSA-4096 hybrid works!";
-    std::vector<unsigned char> plain(msg.begin(), msg.end());
+    SecureVector plain(msg.begin(), msg.end());
 
     auto bundle    = HybridCrypto::encrypt(plain, keypair.get());
     auto recovered = HybridCrypto::decrypt(bundle, keypair.get());
@@ -126,7 +126,7 @@ int main() {
     std::cout << "\n[7] Large file (5 MB)...\n";
     {
         std::ofstream f("/tmp/large_input.bin", std::ios::binary);
-        std::vector<unsigned char> bigdata(5 * 1024 * 1024);
+        SecureVector bigdata(5 * 1024 * 1024);
         for (size_t i = 0; i < bigdata.size(); ++i) bigdata[i] = i & 0xFF;
         f.write(reinterpret_cast<const char*>(bigdata.data()), bigdata.size());
     }
@@ -139,8 +139,8 @@ int main() {
 
     std::ifstream lf1("/tmp/large_input.bin",  std::ios::binary);
     std::ifstream lf2("/tmp/large_output.bin", std::ios::binary);
-    std::vector<unsigned char> lb1((std::istreambuf_iterator<char>(lf1)), {});
-    std::vector<unsigned char> lb2((std::istreambuf_iterator<char>(lf2)), {});
+    SecureVector lb1((std::istreambuf_iterator<char>(lf1)), {});
+    SecureVector lb2((std::istreambuf_iterator<char>(lf2)), {});
     TEST("5 MB content matches", lb1 == lb2);
 
     // ── 8. Empty file ─────────────────────────────────────────────────────────
@@ -173,8 +173,8 @@ int main() {
 
     std::ifstream bf1("/tmp/binary_input.bin",  std::ios::binary);
     std::ifstream bf2("/tmp/binary_output.bin", std::ios::binary);
-    std::vector<unsigned char> bb1((std::istreambuf_iterator<char>(bf1)), {});
-    std::vector<unsigned char> bb2((std::istreambuf_iterator<char>(bf2)), {});
+    SecureVector bb1((std::istreambuf_iterator<char>(bf1)), {});
+    SecureVector bb2((std::istreambuf_iterator<char>(bf2)), {});
     TEST("binary file content matches", bb1 == bb2);
 
     // ── 10. Invalid bundle file rejected ─────────────────────────────────────

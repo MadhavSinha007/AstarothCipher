@@ -87,8 +87,8 @@ int main() {
     std::cout << "\n[3] Binary file integrity...\n";
     std::ifstream bsrc(src+"/binary.bin", std::ios::binary);
     std::ifstream bout(out+"/binary.bin", std::ios::binary);
-    std::vector<unsigned char> bsv(std::istreambuf_iterator<char>(bsrc), {});
-    std::vector<unsigned char> bov(std::istreambuf_iterator<char>(bout), {});
+    SecureVector bsv(std::istreambuf_iterator<char>(bsrc), {});
+    SecureVector bov(std::istreambuf_iterator<char>(bout), {});
     TEST("binary.bin size matches",   bsv.size() == 256 && bov.size() == 256);
     TEST("binary.bin content matches", bsv == bov);
 
@@ -126,7 +126,7 @@ int main() {
     fs::create_directories(lsrc);
     {
         std::ofstream f(lsrc+"/big.bin", std::ios::binary);
-        std::vector<unsigned char> big(2*1024*1024);
+        SecureVector big(2*1024*1024);
         for (size_t i=0;i<big.size();++i) big[i]=i&0xFF;
         f.write(reinterpret_cast<const char*>(big.data()), big.size());
         std::ofstream g(lsrc+"/small.txt"); g << "tiny file\n";

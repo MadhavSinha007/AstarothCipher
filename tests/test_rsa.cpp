@@ -38,7 +38,7 @@ int main() {
 
     // 3. Encrypt → Decrypt round-trip
     std::cout << "\n[3] Encrypt / decrypt round-trip...\n";
-    std::vector<unsigned char> aes_key(32, 0xAB); // fake 256-bit key
+    SecureVector aes_key(32, 0xAB); // fake 256-bit key
 
     auto enc = RSAKeyManager::encrypt(loaded_pub.get(), aes_key);
     TEST("ciphertext not empty",     !enc.empty());
