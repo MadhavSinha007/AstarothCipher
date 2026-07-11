@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AstarothCipher · Dashboard</title>
+  
+  <!-- FAVICON -->
+  <link rel="icon" type="image/svg+xml" href="assets/fav_icon.svg">
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -16,20 +20,35 @@
                 #faf7f3;
       color:#241c18;
       height:100vh;
-      overflow:hidden;
+      overflow:hidden; /* Locks the body for desktop */
       display:flex;
       flex-direction:column;
     }
+    
+    /* SECURE IMAGES GLOBALLY */
+    img {
+      -webkit-user-drag: none;
+      -khtml-user-drag: none;
+      -moz-user-drag: none;
+      -o-user-drag: none;
+      user-drag: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+    }
+
     :root{
       --void:#faf7f3;
-      --panel:#ffffff;
-      --panel-alt:#f6f1ea;
-      --border:#e7ddd0;
+      --panel:rgba(255, 255, 255, 0.95);
+      --panel-glass: rgba(255, 255, 255, 0.55);
+      --panel-alt:rgba(246, 241, 234, 0.8);
+      --border:rgba(231, 221, 208, 0.8);
       --border-soft:#f0e8dd;
       --ember:#a52d29;
       --ember-glow:#c23b34;
       --gold:#a3803f;
-      --gold-soft:rgba(163,128,63,.10);
+      --gold-soft:rgba(163,128,63,.15);
       --text:#241c18;
       --text-muted:#8a7a70;
       --danger:#c9372f;
@@ -41,24 +60,96 @@
     }
     html,body{height:100%;}
     @keyframes spin{to{transform:rotate(360deg);}}
-    @keyframes spin-slow{to{transform:rotate(360deg);}}
     @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
     @keyframes drawerIn{from{transform:translateX(100%);}to{transform:translateX(0);}}
     @keyframes overlayIn{from{opacity:0;}to{opacity:1;}}
     :focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
-    .sigil-ring{animation:spin-slow 40s linear infinite;}
     .spin{animation:spin 0.9s linear infinite;}
 
+    /* GLOBAL WATERMARK */
+    .bg-watermark {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 75vw; height: 75vh; max-width: 850px;
+      background-image: url('assets/icon_loading.svg');
+      background-size: contain; background-position: center; background-repeat: no-repeat;
+      opacity: 0; 
+      pointer-events: none; z-index: 0;
+      transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .bg-watermark.visible { opacity: 0.18; }
+
+    /* CINEMATIC FULLSCREEN LOADER */
+    #globalLoader {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(250, 247, 243, 0.95);
+      backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: background 1.2s ease, backdrop-filter 1.2s ease;
+    }
+    #globalLoader.ready {
+      background: transparent;
+      backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px);
+      pointer-events: none;
+    }
+
+    .loader-center-group {
+      position: relative;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+
+    .loader-icon {
+      width: 130px; height: 130px;
+      z-index: 2; position: relative;
+      animation: spicy-heartbeat 1.2s cubic-bezier(0.25, 1.5, 0.5, 1) infinite;
+    }
+    
+    #globalLoader.ready .loader-icon {
+      animation: cinematic-burst 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
+    }
+
+    .loader-text {
+      width: 220px; margin-top: 15px;
+      z-index: 1; position: absolute; top: 110px;
+      animation: text-slide-down 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards,
+                 text-pulse 1.2s ease-in-out infinite 1.2s; 
+      transition: opacity 0.4s ease;
+      opacity: 0; 
+    }
+    
+    #globalLoader.ready .loader-text {
+      opacity: 0 !important;
+    }
+
+    /* Keyframes */
+    @keyframes spicy-heartbeat {
+      0% { transform: scale(0.9); filter: drop-shadow(0 0 10px rgba(163,128,63,0.4)); }
+      15% { transform: scale(1.25); filter: drop-shadow(0 0 45px rgba(163,128,63,1)); }
+      30% { transform: scale(1.05); filter: drop-shadow(0 0 20px rgba(163,128,63,0.6)); }
+      45% { transform: scale(1.25); filter: drop-shadow(0 0 45px rgba(163,128,63,1)); }
+      100% { transform: scale(0.9); filter: drop-shadow(0 0 10px rgba(163,128,63,0.4)); }
+    }
+    @keyframes cinematic-burst {
+      0% { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 30px rgba(163,128,63,0.8)); }
+      100% { transform: scale(12); opacity: 0; filter: drop-shadow(0 0 0px rgba(163,128,63,0)); }
+    }
+    @keyframes text-slide-down {
+      0% { transform: translateY(-30px); opacity: 0; filter: blur(5px); }
+      100% { transform: translateY(0); opacity: 1; filter: blur(0px); }
+    }
+    @keyframes text-pulse {
+      0%, 100% { opacity: 0.6; transform: translateY(0); filter: drop-shadow(0 0 0 rgba(0,0,0,0));}
+      50% { opacity: 1; transform: translateY(-4px); filter: drop-shadow(0 8px 16px rgba(163,128,63,0.35)); }
+    }
+
     /* header */
-    header{background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;}
-    .header-container{max-width:1000px;margin:0 auto;padding:0 1.25rem;height:64px;display:flex;align-items:center;justify-content:space-between;}
+    header{background:rgba(255,255,255,0.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--border);flex-shrink:0;z-index:10;position:relative;}
+    .header-container{max-width:1100px;margin:0 auto;padding:0 1.25rem;height:64px;display:flex;align-items:center;justify-content:space-between;}
     .hamburger-btn{background:transparent;border:1px solid var(--border);border-radius:9px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;transition:border-color .2s,background .2s;order:3;}
     .hamburger-btn:hover{border-color:var(--gold);background:var(--gold-soft);}
     .nav-brand{display:flex;align-items:center;gap:12px;order:1;}
-    .brand-mark{width:156px;height:156px;object-fit:contain;flex-shrink:0;}
-    .brand-name{font-family:var(--font-display);font-weight:600;font-size:1.1rem;letter-spacing:.06em;color:var(--text);}
-    .brand-name span{color:var(--gold);}
-    .status-indicator{font-size:.8rem;color:var(--text-muted);display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--border);padding:6px 14px;border-radius:20px;min-width:160px;order:2;margin:0 auto;}
+    .brand-mark{width:140px;height:auto;object-fit:contain;flex-shrink:0; margin-top: 5px;}
+    .status-indicator{font-size:.8rem;color:var(--text-muted);display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--border);padding:6px 14px;border-radius:20px;min-width:160px;order:2;margin:0 auto;background:var(--panel-alt);}
 
     /* drawer - right side */
     .drawer-overlay{position:fixed;inset:0;background:rgba(4,2,2,.65);backdrop-filter:blur(2px);z-index:40;display:none;}
@@ -66,7 +157,7 @@
     .side-drawer{position:fixed;top:0;right:0;bottom:0;width:300px;max-width:85vw;background:var(--panel);border-left:1px solid var(--border);z-index:50;display:flex;flex-direction:column;transform:translateX(100%);box-shadow:-20px 0 60px rgba(0,0,0,.5);}
     .side-drawer.open{animation:drawerIn .25s cubic-bezier(.2,.9,.3,1) forwards;}
     .drawer-header{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.25rem;border-bottom:1px solid var(--border);}
-    .drawer-header .brand-name{font-size:1rem;}
+    .drawer-header .brand-name{font-family:var(--font-display);font-weight:600;font-size:1rem;}
     .close-btn{background:transparent;border:1px solid var(--border);border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);cursor:pointer;transition:all .2s;}
     .close-btn:hover{color:var(--danger);border-color:var(--danger);}
     .drawer-nav{padding:.75rem;display:flex;flex-direction:column;gap:6px;flex-grow:1;}
@@ -79,58 +170,127 @@
     .di-sub{font-size:.75rem;color:var(--text-muted);margin-top:2px;}
     .drawer-footer{padding:1rem 1.25rem;border-top:1px solid var(--border);font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;gap:8px;}
 
-    /* main card */
-    .dashboard-container{flex-grow:1;display:flex;align-items:center;justify-content:center;padding:2rem;width:100%;overflow-y:auto;}
-    .view-card{position:relative;background:var(--panel);border-radius:var(--radius);border:1px solid var(--border);padding:2rem;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.35);display:none;flex-direction:column;animation:fadeIn .25s ease-out forwards;overflow:hidden;}
-    .view-card.active{display:flex;}
+    /* container (Unscrollable on Desktop) */
+    .dashboard-container{flex-grow:1;display:flex;align-items:center;justify-content:center;padding:1.5rem;width:100%;overflow:hidden; z-index:1; position:relative;}
+    
+    .view-section { display: none; animation: fadeIn .25s ease-out forwards; width: 100%; justify-content: center;}
+    .view-section.active { display: flex;}
+
+    /* Frosted Glass Cards */
+    .view-card{
+      position:relative;
+      background: var(--panel-glass);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-radius:var(--radius); border:1px solid var(--border);
+      padding:2rem; width:100%; max-width:520px;
+      box-shadow:0 20px 60px rgba(0,0,0,.10);
+      display:flex; flex-direction:column; overflow:hidden;
+    }
     .view-card::before{content:"";position:absolute;top:-60px;right:-60px;width:180px;height:180px;background:radial-gradient(circle, rgba(194,59,59,.18), transparent 70%);pointer-events:none;}
     .card-header{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
     .card-header h2{font-family:var(--font-display);font-size:1.25rem;font-weight:600;letter-spacing:.02em;}
     .icon-circle{width:42px;height:42px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-muted);background:var(--panel-alt);flex-shrink:0;}
     .icon-circle.ember-tint{color:var(--ember-glow);border-color:rgba(255,90,77,.35);background:rgba(194,59,59,.08);}
     .icon-circle.gold-tint{color:var(--gold);border-color:rgba(201,161,92,.4);background:var(--gold-soft);}
-    .subtitle{color:var(--text-muted);font-size:.85rem;margin-bottom:1.5rem;padding-left:54px;line-height:1.5;}
+    .subtitle{color:var(--text-muted);font-size:.85rem;margin-bottom:1.2rem;padding-left:54px;line-height:1.4;}
     .input-label{font-size:.78rem;font-weight:600;color:var(--text);display:block;letter-spacing:.02em;}
     
-    /* FIX: Turned key-input into a proper textarea style */
-    .key-input{width:100%;padding:12px;border:1px solid var(--border);border-radius:9px;margin-bottom:1.5rem;font-family:var(--font-mono);font-size:.83rem;outline:none;background:var(--void);color:var(--text);transition:border-color .2s; min-height: 100px; resize: vertical;}
-    .key-input::placeholder{color:#5c4d48;}
-    .key-input:focus{border-color:var(--gold);}
+    .key-input{width:100%;padding:10px;border:1px solid var(--border);border-radius:9px;margin-bottom:1.2rem;font-family:var(--font-mono);font-size:.8rem;outline:none;background:rgba(255,255,255,0.6);color:var(--text);transition:border-color .2s; min-height: 90px; resize: vertical;}
+    .key-input::placeholder{color:#7a6d68;}
+    .key-input:focus{border-color:var(--gold);background:rgba(255,255,255,0.9);}
     
-    .drag-drop-zone{border:2px dashed var(--border);border-radius:10px;text-align:center;cursor:pointer;transition:all .2s ease;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:2.5rem 1rem;margin-bottom:1.5rem;background:var(--void);}
+    .drag-drop-zone{border:2px dashed var(--border);border-radius:10px;text-align:center;cursor:pointer;transition:all .2s ease;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:2rem 1rem;margin-bottom:1.2rem;background:rgba(255,255,255,0.4);}
     .drag-drop-zone:hover,.drag-drop-zone.dragover{border-color:var(--ember-glow);background:rgba(194,59,59,.06);}
-    .drag-drop-zone i{color:var(--text-muted);margin-bottom:4px;}
-    .drag-drop-zone p{font-weight:600;font-size:.95rem;color:var(--text);}
+    .drag-drop-zone i{color:var(--text-muted);margin-bottom:2px;}
+    .drag-drop-zone p{font-weight:600;font-size:.9rem;color:var(--text);}
     .drag-drop-zone span{font-size:.75rem;color:var(--text-muted);}
     #encFileInput,#decFileInput{display:none;}
-    .action-btn{width:100%;padding:1rem;border-radius:9px;border:none;font-weight:700;font-size:.92rem;cursor:pointer;color:var(--void);display:flex;justify-content:center;align-items:center;gap:8px;letter-spacing:.02em;transition:all .2s ease;}
+    .action-btn{width:100%;padding:0.9rem;border-radius:9px;border:none;font-weight:700;font-size:.9rem;cursor:pointer;color:var(--void);display:flex;justify-content:center;align-items:center;gap:8px;letter-spacing:.02em;transition:all .2s ease;}
     .action-btn:active{transform:scale(.98);}
     .btn-ember{background:linear-gradient(135deg,var(--ember-glow),var(--ember));color:#1a0605;}
     .btn-ember:hover{filter:brightness(1.1);}
     .btn-gold{background:linear-gradient(135deg,var(--gold),#a9803f);color:#1a1206;}
     .btn-gold:hover{filter:brightness(1.1);}
     
-    .key-box{margin-bottom:1.5rem;}
+    .key-box{margin-bottom:1.2rem;}
     .key-box-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
-    .key-textarea{width:100%;height:80px;padding:12px;border:1px solid var(--border);border-radius:9px;background-color:var(--void);color:var(--text);font-family:var(--font-mono);font-size:.78rem;resize:none;outline:none;}
-    .key-textarea:focus{border-color:var(--gold);}
-    .key-actions{display:flex;gap:8px;}
+    .key-textarea{width:100%;height:70px;padding:10px;border:1px solid var(--border);border-radius:9px;background-color:rgba(255,255,255,0.6);color:var(--text);font-family:var(--font-mono);font-size:.75rem;resize:none;outline:none;}
+    .key-textarea:focus{border-color:var(--gold);background:rgba(255,255,255,0.9);}
+    .key-actions{display:flex;gap:6px;}
     
-    .mini-btn{background:var(--panel-alt);color:var(--text-muted);border:1px solid var(--border);padding:4px 10px;border-radius:7px;font-size:.72rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .2s;}
+    .mini-btn{background:var(--panel-alt);color:var(--text-muted);border:1px solid var(--border);padding:4px 8px;border-radius:7px;font-size:.7rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .2s;}
     .mini-btn:hover{color:var(--text);border-color:var(--gold);}
     .mini-btn-danger:hover{background:rgba(255,92,92,.12);color:var(--danger);border-color:var(--danger);}
+
+    /* --- COMPACT TWO-COLUMN DOCUMENTATION VIEW --- */
+    .doc-view { 
+      background: var(--panel-glass); 
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-radius: var(--radius); border: 1px solid var(--border); 
+      padding: 1.5rem 2.5rem; width: 100%; max-width: 820px; box-shadow: 0 20px 60px rgba(0,0,0,.10); 
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start;
+    }
     
-    @media (max-width:560px){.view-card{padding:1.5rem;}.subtitle{padding-left:0;margin-top:.5rem;}}
+    .doc-header { grid-column: 1 / -1; text-align: center; margin-bottom: 0; border-bottom: 1px solid var(--border); padding-bottom: 1rem;}
+    .doc-header img { max-height: 85px; margin: 0 auto 0.5rem; display: block; filter: drop-shadow(0 10px 15px rgba(163,128,63,.25)); }
+    .doc-header h1 { font-family: var(--font-display); font-size: 1.4rem; color: var(--gold); margin-bottom: 0.2rem; letter-spacing: 0.02em; }
+    .doc-header .doc-subtitle { color: var(--text-muted); font-size: 0.85rem; }
+
+    .doc-col h2 { font-family: var(--font-display); font-size: 1.05rem; margin: 0 0 0.4rem; color: var(--ember-glow); display: flex; align-items: center; gap: 6px; }
+    .doc-col p { font-size: 0.8rem; line-height: 1.5; color: var(--text-muted); margin-bottom: 0.75rem; }
+    .doc-col ul { margin-bottom: 0.75rem; padding-left: 16px; color: var(--text-muted); font-size: 0.8rem; line-height: 1.5; }
+    .doc-col li { margin-bottom: 4px; }
+    .doc-col code { background: rgba(246, 241, 234, 0.9); border: 1px solid var(--border); padding: 2px 5px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.85em; color: var(--gold); }
+    
+    .doc-alert { background: rgba(163,128,63,.08); border: 1px solid var(--gold-soft); padding: 0.85rem; border-radius: 10px; display: flex; gap: 10px; margin-top: 0.5rem; }
+    .doc-alert i { color: var(--gold); flex-shrink: 0; }
+    .doc-alert div { font-size: 0.78rem; line-height: 1.4; color: var(--text-muted); }
+    .doc-alert strong { color: var(--text); }
+
+    /* Mobile Responsive */
+    @media (max-width: 820px){ 
+      .dashboard-container { overflow-y: auto; align-items: flex-start; }
+      .doc-view { grid-template-columns: 1fr; padding: 1.5rem; gap: 1rem; }
+    }
+    @media (max-width: 560px){
+      .header-container { padding: 0 0.8rem; }
+      .brand-mark { width: 115px; }
+      
+      /* Mobile specific fix for the Status badge */
+      .status-indicator { 
+        min-width: 110px; 
+        font-size: 0.65rem; 
+        padding: 4px 10px; 
+        gap: 4px;
+      }
+      
+      .hamburger-btn { width: 34px; height: 34px; }
+      .view-card{padding:1.5rem;}
+      .doc-view{padding: 1.25rem;}
+      .subtitle{padding-left:0;margin-top:.5rem;}
+    }
   </style>
 </head>
 <body>
+
+<!-- GLOBAL BACKGROUND WATERMARK -->
+<div class="bg-watermark"></div>
+
+<!-- CINEMATIC LOADING SCREEN -->
+<div id="globalLoader">
+  <div class="loader-center-group">
+    <img src="assets/icon_loading.svg" class="loader-icon" alt="AstarothCipher Icon" draggable="false" oncontextmenu="return false;">
+    <img src="assets/text_loading.svg" class="loader-text" alt="AstarothCipher Loading" draggable="false" oncontextmenu="return false;">
+  </div>
+</div>
+
 <header>
   <div class="header-container">
     <div class="nav-brand">
-      <img src="text_icon.svg" class="brand-mark" alt="AstarothCipher logo" onerror="this.style.display='none'">
+      <img src="assets/text_icon.svg" class="brand-mark" alt="AstarothCipher logo" onerror="this.style.display='none'" draggable="false" oncontextmenu="return false;">
     </div>
     <div class="status-indicator" id="engineStatus">
-      <i data-lucide="loader" class="spin" size="14"></i> Loading Engine...
+      <i data-lucide="loader" class="spin" size="14"></i> Initializing...
     </div>
     <button class="hamburger-btn" id="hamburgerBtn" onclick="openDrawer()" aria-label="Open navigation">
       <i data-lucide="menu" size="18"></i>
@@ -141,15 +301,19 @@
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
 <nav class="side-drawer" id="sideDrawer" aria-label="Main navigation">
   <div class="drawer-header">
-    <span class="brand-name">Navigate</span>
+    <span class="brand-name">AstarothCipher</span>
     <button class="close-btn" onclick="closeDrawer()" aria-label="Close navigation">
       <i data-lucide="x" size="16"></i>
     </button>
   </div>
   <div class="drawer-nav">
-    <button class="drawer-item active" id="nav-encrypt" onclick="switchView('encrypt')">
+    <button class="drawer-item active" id="nav-about" onclick="switchView('about')">
+      <div class="di-icon"><i data-lucide="book-open" size="17"></i></div>
+      <div><div class="di-title">Documentation</div><div class="di-sub">How to use the engine</div></div>
+    </button>
+    <button class="drawer-item" id="nav-encrypt" onclick="switchView('encrypt')">
       <div class="di-icon"><i data-lucide="lock" size="17"></i></div>
-      <div><div class="di-title">Encrypt</div><div class="di-sub">Seal a file with a public key</div></div>
+      <div><div class="di-title">Encrypt</div><div class="di-sub">Seal a file for a recipient</div></div>
     </button>
     <button class="drawer-item" id="nav-decrypt" onclick="switchView('decrypt')">
       <div class="di-icon"><i data-lucide="unlock" size="17"></i></div>
@@ -157,107 +321,168 @@
     </button>
     <button class="drawer-item" id="nav-keys" onclick="switchView('keys')">
       <div class="di-icon"><i data-lucide="key" size="17"></i></div>
-      <div><div class="di-title">Key Manager</div><div class="di-sub">Generate your identity</div></div>
+      <div><div class="di-title">Key Manager</div><div class="di-sub">Generate your local identity</div></div>
     </button>
   </div>
   <div class="drawer-footer">
-    <i data-lucide="shield" size="14"></i> Everything runs locally in your browser
+    <i data-lucide="shield" size="14"></i> Zero-Knowledge WebAssembly Architecture
   </div>
 </nav>
 
 <main class="dashboard-container">
-  <div id="view-encrypt" class="view-card active">
-    <div class="card-header">
-      <div class="icon-circle ember-tint"><i data-lucide="shield-check"></i></div>
-      <h2>Secure a File</h2>
-    </div>
-    <p class="subtitle">Encrypt a file locally before sending it. You need the recipient's Public Key.</p>
-    
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <label class="input-label" style="margin:0;">Recipient's Public Key</label>
-      <button class="mini-btn" onclick="document.getElementById('encKeyUpload').click()" title="Load a .pem file from your computer">
-        <i data-lucide="upload" size="12"></i> Load .pem
-      </button>
-      <input type="file" id="encKeyUpload" accept=".pem,.txt" style="display:none;" onchange="loadPemFile(event, 'encKeyInput')">
-    </div>
-    
-    <textarea id="encKeyInput" class="key-input" placeholder="Paste Public Key here..." autocomplete="off"></textarea>
-    
-    <label class="drag-drop-zone" id="encDropZone" for="encFileInput">
-      <i data-lucide="cloud-upload" size="32"></i>
-      <p id="encFileLabel">Choose a file or drag & drop</p>
-      <span>Any format, up to 1GB locally</span>
-    </label>
-    <input type="file" id="encFileInput">
-    
-    <button id="btnEncrypt" class="action-btn btn-ember" onclick="processFile('encrypt')">
-      <i data-lucide="lock" size="18"></i> <span>Encrypt & Download</span>
-    </button>
-  </div>
+  
+  <!-- ABOUT / DOCUMENTATION VIEW -->
+  <div id="view-about" class="view-section active">
+    <div class="doc-view">
+      
+      <div class="doc-header">
+        <img src="assets/center_align.svg" alt="AstarothCipher Big Logo" draggable="false" oncontextmenu="return false;">
+        <h1>AstarothCipher Protocol</h1>
+        <div class="doc-subtitle">Local-first, zero-knowledge cryptographic file exchange.</div>
+      </div>
 
-  <div id="view-decrypt" class="view-card">
-    <div class="card-header">
-      <div class="icon-circle"><i data-lucide="unlock"></i></div>
-      <h2>Recover Data</h2>
-    </div>
-    <p class="subtitle">Decrypt an .hcry file sent to you. You must use your secret Private Key.</p>
-    
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <label class="input-label" style="margin:0;">Your Private Key</label>
-      <button class="mini-btn" onclick="document.getElementById('decKeyUpload').click()" title="Load a .pem file from your computer">
-        <i data-lucide="upload" size="12"></i> Load .pem
-      </button>
-      <input type="file" id="decKeyUpload" accept=".pem,.txt" style="display:none;" onchange="loadPemFile(event, 'decKeyInput')">
-    </div>
+      <div class="doc-col">
+        <h2><i data-lucide="user-cog"></i> 1. Establishing Identity</h2>
+        <p>Before you can receive encrypted files, you must establish a cryptographic identity. Navigate to the <strong>Key Manager</strong> to generate your RSA-2048 keypair entirely in your browser's RAM.</p>
+        <ul>
+          <li><strong>Public Key:</strong> Your public address. Share this <code>.pem</code> file safely with anyone who wants to send you a secure file.</li>
+          <li><strong>Private Key:</strong> Your master vault key. It is used to decrypt files sent to you. <strong>Never share this.</strong> Save it securely on your device.</li>
+        </ul>
 
-    <textarea id="decKeyInput" class="key-input" placeholder="Paste your Private Key here..." autocomplete="off"></textarea>
-    
-    <label class="drag-drop-zone" id="decDropZone" for="decFileInput">
-      <i data-lucide="file-key-2" size="32"></i>
-      <p id="decFileLabel">Select an .hcry file</p>
-      <span>Drop encrypted bundle here</span>
-    </label>
-    <input type="file" id="decFileInput" accept=".hcry">
-    
-    <button id="btnDecrypt" class="action-btn btn-gold" onclick="processFile('decrypt')">
-      <i data-lucide="unlock" size="18"></i> <span>Decrypt File</span>
-    </button>
-  </div>
-
-  <div id="view-keys" class="view-card">
-    <div class="card-header">
-      <div class="icon-circle gold-tint"><i data-lucide="contact-2"></i></div>
-      <h2>Identity Management</h2>
-    </div>
-    <p class="subtitle" style="margin-bottom:1rem;">Generate your local cryptographic identity. Keys never leave your browser.</p>
-    
-    <div class="key-box">
-      <div class="key-box-header">
-        <label class="input-label" style="margin:0;"><i data-lucide="globe" size="12" style="vertical-align:-2px;margin-right:4px;"></i> Public Key (Share this)</label>
-        <div class="key-actions">
-          <button class="mini-btn" onclick="copyToClipboard('pubKey')"><i data-lucide="copy" size="12"></i> Copy</button>
-          <button class="mini-btn" onclick="downloadKey('pubKey','public_key.pem')"><i data-lucide="download" size="12"></i> Save</button>
-          <button class="mini-btn mini-btn-danger" onclick="clearKey('pubKey')"><i data-lucide="trash-2" size="12"></i></button>
+        <div class="doc-alert">
+          <i data-lucide="shield-check" size="22" style="color:var(--success);"></i>
+          <div>
+            <strong>Integrity Validation</strong><br>
+            During decryption, the engine verifies the AES-GCM authentication tag. If a single byte was tampered with in transit, decryption will automatically fail.
+          </div>
         </div>
       </div>
-      <textarea id="pubKey" class="key-textarea" readonly placeholder="Public key will appear here..." autocomplete="off"></textarea>
-    </div>
-    
-    <div class="key-box">
-      <div class="key-box-header">
-        <label class="input-label" style="margin:0;"><i data-lucide="shield-alert" size="12" style="vertical-align:-2px;margin-right:4px;"></i> Private Key (Keep Secret!)</label>
-        <div class="key-actions">
-          <button class="mini-btn" onclick="copyToClipboard('privKey')"><i data-lucide="copy" size="12"></i> Copy</button>
-          <button class="mini-btn" onclick="downloadKey('privKey','private_key.pem')"><i data-lucide="download" size="12"></i> Save</button>
-          <button class="mini-btn mini-btn-danger" onclick="clearKey('privKey')"><i data-lucide="trash-2" size="12"></i></button>
-        </div>
+
+      <div class="doc-col">
+        <h2><i data-lucide="lock"></i> 2. Encrypting (Sending)</h2>
+        <p>To send a file to a recipient, you must possess their <strong>Public Key</strong>.</p>
+        <ul>
+          <li>Go to the <strong>Encrypt</strong> tab.</li>
+          <li>Load their Public Key (paste it or upload the file).</li>
+          <li>Drag and drop the file you wish to send.</li>
+          <li>Click <strong>Encrypt & Download</strong>.</li>
+        </ul>
+        <p>The engine generates a randomized AES session key, encrypts the file payload, and encrypts the AES key using the Public Key into an <code>.hcry</code> bundle.</p>
+
+        <h2 style="margin-top:1rem;"><i data-lucide="unlock"></i> 3. Decrypting (Receiving)</h2>
+        <p>When someone sends you an <code>.hcry</code> bundle, you need your <strong>Private Key</strong> to open it.</p>
+        <ul>
+          <li>Go to the <strong>Decrypt</strong> tab.</li>
+          <li>Provide your Private Key.</li>
+          <li>Select the <code>.hcry</code> file you received.</li>
+          <li>Click <strong>Decrypt File</strong> to recover the original data.</li>
+        </ul>
       </div>
-      <textarea id="privKey" class="key-textarea" readonly placeholder="Private key will appear here..." autocomplete="off"></textarea>
+
     </div>
-    
-    <button class="action-btn btn-gold" onclick="generateKeys()" id="btnGenKeys" style="margin-top:.5rem;">
-      <i data-lucide="refresh-cw" size="18"></i> <span>Generate New RSA-2048 Keys</span>
-    </button>
+  </div>
+
+  <!-- ENCRYPT VIEW -->
+  <div id="view-encrypt" class="view-section">
+    <div class="view-card">
+      <div class="card-header">
+        <div class="icon-circle ember-tint"><i data-lucide="shield-check"></i></div>
+        <h2>Secure a File</h2>
+      </div>
+      <p class="subtitle">Encrypt a file locally before sending it. You need the recipient's Public Key.</p>
+      
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <label class="input-label" style="margin:0;">Recipient's Public Key</label>
+        <button class="mini-btn" onclick="document.getElementById('encKeyUpload').click()" title="Load a .pem file from your computer">
+          <i data-lucide="upload" size="12"></i> Load .pem
+        </button>
+        <input type="file" id="encKeyUpload" accept=".pem,.txt" style="display:none;" onchange="loadPemFile(event, 'encKeyInput')">
+      </div>
+      
+      <textarea id="encKeyInput" class="key-input" placeholder="Paste Public Key here..." autocomplete="off"></textarea>
+      
+      <label class="drag-drop-zone" id="encDropZone" for="encFileInput">
+        <i data-lucide="cloud-upload" size="32"></i>
+        <p id="encFileLabel">Choose a file or drag & drop</p>
+        <span>Any format, up to 1GB locally</span>
+      </label>
+      <input type="file" id="encFileInput">
+      
+      <button id="btnEncrypt" class="action-btn btn-ember" onclick="processFile('encrypt')">
+        <i data-lucide="lock" size="18"></i> <span>Encrypt & Download</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- DECRYPT VIEW -->
+  <div id="view-decrypt" class="view-section">
+    <div class="view-card">
+      <div class="card-header">
+        <div class="icon-circle"><i data-lucide="unlock"></i></div>
+        <h2>Recover Data</h2>
+      </div>
+      <p class="subtitle">Decrypt an .hcry file sent to you. You must use your secret Private Key.</p>
+      
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <label class="input-label" style="margin:0;">Your Private Key</label>
+        <button class="mini-btn" onclick="document.getElementById('decKeyUpload').click()" title="Load a .pem file from your computer">
+          <i data-lucide="upload" size="12"></i> Load .pem
+        </button>
+        <input type="file" id="decKeyUpload" accept=".pem,.txt" style="display:none;" onchange="loadPemFile(event, 'decKeyInput')">
+      </div>
+
+      <textarea id="decKeyInput" class="key-input" placeholder="Paste your Private Key here..." autocomplete="off"></textarea>
+      
+      <label class="drag-drop-zone" id="decDropZone" for="decFileInput">
+        <i data-lucide="file-key-2" size="32"></i>
+        <p id="decFileLabel">Select an .hcry file</p>
+        <span>Drop encrypted bundle here</span>
+      </label>
+      <input type="file" id="decFileInput" accept=".hcry">
+      
+      <button id="btnDecrypt" class="action-btn btn-gold" onclick="processFile('decrypt')">
+        <i data-lucide="unlock" size="18"></i> <span>Decrypt File</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- KEYS VIEW -->
+  <div id="view-keys" class="view-section">
+    <div class="view-card">
+      <div class="card-header">
+        <div class="icon-circle gold-tint"><i data-lucide="contact-2"></i></div>
+        <h2>Identity Management</h2>
+      </div>
+      <p class="subtitle" style="margin-bottom:1rem;">Generate your local cryptographic identity. Keys never leave your browser.</p>
+      
+      <div class="key-box">
+        <div class="key-box-header">
+          <label class="input-label" style="margin:0;"><i data-lucide="globe" size="12" style="vertical-align:-2px;margin-right:4px;"></i> Public Key (Share this)</label>
+          <div class="key-actions">
+            <button class="mini-btn" onclick="copyToClipboard('pubKey')"><i data-lucide="copy" size="12"></i> Copy</button>
+            <button class="mini-btn" onclick="downloadKey('pubKey','public_key.pem')"><i data-lucide="download" size="12"></i> Save</button>
+            <button class="mini-btn mini-btn-danger" onclick="clearKey('pubKey')"><i data-lucide="trash-2" size="12"></i></button>
+          </div>
+        </div>
+        <textarea id="pubKey" class="key-textarea" readonly placeholder="Public key will appear here..." autocomplete="off"></textarea>
+      </div>
+      
+      <div class="key-box">
+        <div class="key-box-header">
+          <label class="input-label" style="margin:0;"><i data-lucide="shield-alert" size="12" style="vertical-align:-2px;margin-right:4px;"></i> Private Key (Keep Secret!)</label>
+          <div class="key-actions">
+            <button class="mini-btn" onclick="copyToClipboard('privKey')"><i data-lucide="copy" size="12"></i> Copy</button>
+            <button class="mini-btn" onclick="downloadKey('privKey','private_key.pem')"><i data-lucide="download" size="12"></i> Save</button>
+            <button class="mini-btn mini-btn-danger" onclick="clearKey('privKey')"><i data-lucide="trash-2" size="12"></i></button>
+          </div>
+        </div>
+        <textarea id="privKey" class="key-textarea" readonly placeholder="Private key will appear here..." autocomplete="off"></textarea>
+      </div>
+      
+      <button class="action-btn btn-gold" onclick="generateKeys()" id="btnGenKeys" style="margin-top:.5rem;">
+        <i data-lucide="refresh-cw" size="18"></i> <span>Generate New RSA-2048 Keys</span>
+      </button>
+    </div>
   </div>
 </main>
 
@@ -279,21 +504,43 @@
       const status = document.getElementById('engineStatus');
       status.innerHTML = '<i data-lucide="check-circle" size="14" style="color: var(--success);"></i> System Ready';
       lucide.createIcons();
+      
+      const loader = document.getElementById('globalLoader');
+      const bgWatermark = document.querySelector('.bg-watermark');
+
+      // The Cinematic Handoff Sequence
+      setTimeout(() => {
+        
+        // 1. Trigger the massive burst & fade out of the loader icon
+        loader.classList.add('ready'); 
+        
+        // 2. Simultaneously fade in the actual permanent watermark
+        bgWatermark.classList.add('visible'); 
+        
+        // 3. Remove the loader container ONLY after the 1.2s CSS transition is fully finished
+        setTimeout(() => {
+          loader.style.display = 'none'; 
+        }, 1300); 
+
+      }, 1400); // Let them admire the sliding text before triggering the burst
     },
     onAbort: function (err) {
       const status = document.getElementById('engineStatus');
       status.innerHTML = '<i data-lucide="alert-circle" size="14" style="color: var(--danger);"></i> Engine Error';
       status.style.borderColor = 'var(--danger)';
       console.error('WASM Engine failed to load:', err);
+      
+      document.getElementById('globalLoader').style.display = 'none';
     }
   };
 
-  // Timeout fallback
+  // Timeout fallback for loader
   setTimeout(() => {
     const status = document.getElementById('engineStatus');
-    if (!cppEngine && status.innerHTML.includes('Loading Engine')) {
+    if (!cppEngine && status.innerHTML.includes('Initializing')) {
       status.innerHTML = '<i data-lucide="alert-circle" size="14" style="color: var(--danger);"></i> Engine timeout';
       status.style.borderColor = 'var(--danger)';
+      document.getElementById('globalLoader').style.display = 'none';
     }
   }, 8000);
 </script>
@@ -312,14 +559,14 @@
   }
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 
-  // Navigation
+  // Navigation logic
   function switchView(viewId) {
     document.querySelectorAll('.drawer-item').forEach(btn => btn.classList.remove('active'));
     document.getElementById(`nav-${viewId}`).classList.add('active');
-    document.querySelectorAll('.view-card').forEach(card => card.classList.remove('active'));
+    
+    document.querySelectorAll('.view-section').forEach(section => section.classList.remove('active'));
     document.getElementById(`view-${viewId}`).classList.add('active');
     
-    // Auto-fill private key on decrypt view if available in the Key Manager
     if (viewId === 'decrypt') {
       const storedPriv = document.getElementById('privKey').value;
       if (storedPriv && !document.getElementById('decKeyInput').value) {
@@ -329,7 +576,7 @@
     closeDrawer();
   }
 
-  // Read .pem file into the text area
+  // Read .pem file
   function loadPemFile(event, targetInputId) {
     const file = event.target.files[0];
     if (!file) return;
@@ -339,8 +586,6 @@
         document.getElementById(targetInputId).value = e.target.result.trim();
     };
     reader.readAsText(file);
-    
-    // Reset the file input so the user can upload the same file again if they cleared it
     event.target.value = '';
   }
 
@@ -370,22 +615,19 @@
   setupDragDrop('encDropZone','encFileInput','encFileLabel',true);
   setupDragDrop('decDropZone','decFileInput','decFileLabel',false);
 
-  // Crypto engine
-async function generateKeys() {
+  // Crypto engine hooks
+  async function generateKeys() {
     const btn = document.getElementById('btnGenKeys');
     btn.innerHTML = '<span>Generating...</span>';
 
     try {
         if (typeof cppEngine === 'undefined') throw new Error("WASM Engine not loaded.");
 
-        // Run the generator
         cppEngine.generateKeys(2048);
         
-        // Fetch raw byte arrays (Bypasses the Emscripten TextDecoder crash)
         const privBytes = cppEngine.getPrivKey();
         const pubBytes = cppEngine.getPubKey();
 
-        // Safely decode the isolated bytes into strings
         const decoder = new TextDecoder('utf-8');
         const priv = decoder.decode(privBytes);
         const pub = decoder.decode(pubBytes);
@@ -399,7 +641,7 @@ async function generateKeys() {
     } finally {
         btn.innerHTML = '<span>Generate New Keys</span>';
     }
-}
+  }
 
   async function processFile(mode) {
     if (!cppEngine) return alert("Crypto engine is not available.");
@@ -444,7 +686,7 @@ async function generateKeys() {
     }
   }
 
-  // Utilities
+  // Textbox Utilities
   function copyToClipboard(id) {
     const el = document.getElementById(id);
     if (el.value) navigator.clipboard.writeText(el.value);
