@@ -371,33 +371,30 @@
   setupDragDrop('decDropZone','decFileInput','decFileLabel',false);
 
   // Crypto engine
-function generateKeys() {
-    if (!cppEngine) return;
-    
+async function generateKeys() {
     const btn = document.getElementById('btnGenKeys');
-    btn.innerHTML = '<i data-lucide="loader" class="spin" size="18"></i> <span>Generating...</span>';
-    lucide.createIcons();
+    btn.innerHTML = '<span>Generating...</span>';
 
-    setTimeout(() => {
-        try {
-            // 1. Run the generator
-            cppEngine.generateKeys(2048);
-            
-            // 2. Fetch the strings as independent, safe copies
-            const priv = cppEngine.getPrivKey();
-            const pub = cppEngine.getPubKey();
+    try {
+        // Ensure cppEngine is loaded
+        if (typeof cppEngine === 'undefined') throw new Error("WASM Engine not loaded.");
 
-            document.getElementById('privKey').value = priv;
-            document.getElementById('pubKey').value = pub;
-            document.getElementById('decKeyInput').value = priv;
-            
-        } catch (e) {
-            alert('Error: ' + e.message);
-        } finally {
-            btn.innerHTML = '<i data-lucide="refresh-cw" size="18"></i> <span>Generate New RSA-2048 Keys</span>';
-            lucide.createIcons();
-        }
-    }, 50);
+        // Run the generator
+        cppEngine.generateKeys(2048);
+        
+        // Fetch strings
+        const priv = cppEngine.getPrivKey();
+        const pub = cppEngine.getPubKey();
+
+        document.getElementById('privKey').value = priv;
+        document.getElementById('pubKey').value = pub;
+        
+    } catch (e) {
+        console.error("Critical WASM Error:", e);
+        alert('Engine Error: ' + (e.message || "Unknown error occurred. Check Console (F12)."));
+    } finally {
+        btn.innerHTML = '<span>Generate New Keys</span>';
+    }
 }
 
   async function processFile(mode) {
