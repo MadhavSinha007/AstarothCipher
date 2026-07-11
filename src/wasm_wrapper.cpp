@@ -46,7 +46,7 @@ void generate_keys_js(int bits) {
     BIO_free(pub_bio);
 }
 
-// BULLETPROOF STRING EXTRACTION: Copy string to isolated JS Uint8Array
+// BULLETPROOF STRING EXTRACTION
 val string_to_js_array(const std::string& str) {
     val memory_view = val(typed_memory_view(str.size(), str.data()));
     val js_array = val::global("Uint8Array").new_(str.size());
@@ -57,8 +57,50 @@ val string_to_js_array(const std::string& str) {
 val get_priv_key() { return string_to_js_array(last_priv); }
 val get_pub_key() { return string_to_js_array(last_pub); }
 
+// --- ENCRYPTION / DECRYPTION GLUE ---
+
+SecureVector js_to_secure_vec(const val& js_array) {
+    auto length = js_array["length"].as<size_t>();
+    SecureVector vec(length);
+    val memoryView{typed_memory_view(length, vec.data())};
+    memoryView.call<void>("set", js_array);
+    return vec;
+}
+
+val secure_vec_to_js(const SecureVector& vec) {
+    val memory_view = val(typed_memory_view(vec.size(), vec.data()));
+    val js_array = val::global("Uint8Array").new_(vec.size());
+    js_array.call<void>("set", memory_view);
+    return js_array;
+}
+
+val encrypt_data_js(const val& js_plaintext, const std::string& pub_key_pem) {
+    init_openssl_if_needed();
+    SecureVector plaintext = js_to_secure_vec(js_plaintext);
+    auto pub_key = RSAKeyManager::load_public_key_from_string(pub_key_pem);
+    if (!pub_key) throw std::runtime_error("Invalid public key");
+    
+    HybridBundle bundle = HybridCrypto::encrypt(plaintext, pub_key.get());
+    return secure_vec_to_js(bundle.to_bytes());
+}
+
+val decrypt_data_js(const val& js_bundle, const std::string& priv_key_pem) {
+    init_openssl_if_needed();
+    SecureVector bundle_bytes = js_to_secure_vec(js_bundle);
+    HybridBundle bundle = HybridBundle::from_bytes(bundle_bytes);
+
+    auto priv_key = RSAKeyManager::load_private_key_from_string(priv_key_pem);
+    if (!priv_key) throw std::runtime_error("Invalid private key");
+    
+    SecureVector plaintext = HybridCrypto::decrypt(bundle, priv_key.get());
+    return secure_vec_to_js(plaintext);
+}
+
+// BINDINGS
 EMSCRIPTEN_BINDINGS(hybrid_crypto_module) {
     function("generateKeys", &generate_keys_js);
     function("getPrivKey", &get_priv_key);
     function("getPubKey", &get_pub_key);
+    function("encryptData", &encrypt_data_js);
+    function("decryptData", &decrypt_data_js);
 }
