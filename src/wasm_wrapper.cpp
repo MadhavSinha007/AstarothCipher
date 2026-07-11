@@ -29,20 +29,22 @@ val secure_vec_to_js(const SecureVector& vec) {
 val generate_keys_js(int bits) {
     auto keypair = RSAKeyManager::generate_keypair(bits);
     
-    // Save keys to Emscripten's virtual in-memory file system
     RSAKeyManager::save_private_key(keypair.get(), "/virt_priv.pem");
     RSAKeyManager::save_public_key(keypair.get(), "/virt_pub.pem");
 
-    // Read them back as strings to send to JavaScript
     std::ifstream priv_file("/virt_priv.pem");
     std::string priv_str((std::istreambuf_iterator<char>(priv_file)), {});
     
     std::ifstream pub_file("/virt_pub.pem");
     std::string pub_str((std::istreambuf_iterator<char>(pub_file)), {});
 
+    // Create a new JS Object
     val result = val::object();
-    result.set("privateKey", priv_str);
-    result.set("publicKey", pub_str);
+    
+    // Explicitly casting to std::string triggers a copy out of the WASM heap
+    result.set("privateKey", std::string(priv_str));
+    result.set("publicKey", std::string(pub_str));
+    
     return result;
 }
 
