@@ -1,0 +1,4 @@
+emsdk/
+wasm_deps/
+*.o
+build/
