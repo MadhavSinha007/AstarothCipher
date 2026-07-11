@@ -129,19 +129,6 @@
       animation: cinematic-burst .6s ease-out forwards !important;
     }
 
-    .loader-text {
-      width: 220px; margin-top: 15px;
-      z-index: 1; position: absolute; top: 110px;
-      animation: text-slide-down .6s ease-out forwards,
-                 text-pulse 1.6s ease-in-out infinite .6s; 
-      transition: opacity 0.3s ease-out;
-      opacity: 0; 
-    }
-    
-    #globalLoader.ready .loader-text {
-      opacity: 0 !important;
-    }
-
     /* Keyframes — transform/opacity only, no per-frame filter recompute,
        simple two-stop pulses with plain easing (cheap for the browser
        to evaluate, no overshoot/direction-reversal complexity). */
@@ -161,13 +148,40 @@
       0% { transform: scale(1.05) translateZ(0); opacity: 1; }
       100% { transform: scale(8) translateZ(0); opacity: 0; }
     }
-    @keyframes text-slide-down {
-      0% { transform: translateY(-16px) translateZ(0); opacity: 0; }
-      100% { transform: translateY(0) translateZ(0); opacity: 1; }
+
+    /* PROGRESS COUNTER — bottom-left, replaces the old loading text */
+    .loading-counter{
+      position: fixed; left: 28px; bottom: 26px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 2px;
+      opacity: 0; transform: translateY(6px) translateZ(0);
+      transition: opacity .35s ease-out, transform .35s ease-out;
+      pointer-events: none;
     }
-    @keyframes text-pulse {
-      0%, 100% { opacity: 0.6; transform: translateY(0) translateZ(0); }
-      50% { opacity: 1; transform: translateY(-3px) translateZ(0); }
+    .loading-counter.visible{ opacity: 1; transform: translateY(0) translateZ(0); }
+    .lc-row{ display: flex; align-items: baseline; line-height: 1; }
+    .lc-value{
+      font-family: var(--font-mono); font-weight: 700;
+      font-size: 3.4rem; letter-spacing: -.01em;
+      background: linear-gradient(135deg, var(--ember-glow), var(--gold));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      font-variant-numeric: tabular-nums;
+    }
+    .lc-percent{
+      font-family: var(--font-mono); font-weight: 600;
+      font-size: 1.3rem; margin-left: 3px; color: var(--gold);
+    }
+    .lc-label{
+      font-family: var(--font-body); font-size: .68rem;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    @media (max-width: 560px){
+      .loading-counter{ left: 16px; bottom: 16px; }
+      .lc-value{ font-size: 2.5rem; }
+      .lc-percent{ font-size: 1rem; }
+    }
+    @media (prefers-reduced-motion: reduce){
+      .loading-counter{ transition: opacity .2s ease-out; transform: none !important; }
     }
 
     /* header */
@@ -275,10 +289,13 @@
     .doc-alert div { font-size: 0.78rem; line-height: 1.4; color: var(--text-muted); }
     .doc-alert strong { color: var(--text); }
 
-    /* Perf: isolate paint/layout for panels that animate independently */
+    /* Perf: isolate paint/layout for panels that animate independently.
+       will-change is scoped to only the elements that loop-animate for
+       the loader's lifetime — leaving it on things like the drawer or
+       watermark permanently would keep them promoted to their own
+       compositor layer for the whole session for no benefit. */
     .view-card, .doc-view { contain: layout style paint; }
-    .loader-icon, .loader-text, .loader-glow, .bg-watermark { will-change: transform, opacity; }
-    .side-drawer { will-change: transform; }
+    .loader-icon, .loader-glow { will-change: transform, opacity; }
 
     /* Respect users who prefer reduced motion */
     @media (prefers-reduced-motion: reduce){
@@ -287,7 +304,6 @@
       .view-section{ animation: none !important; }
       .side-drawer.open{ animation: none !important; transform: translateX(0) !important; }
       .drawer-overlay.open{ animation: none !important; }
-      .loader-text{ animation: none !important; opacity: 1 !important; transform:none !important; filter:none !important; }
     }
 
     /* Mobile Responsive */
@@ -324,7 +340,12 @@
   <div class="loader-center-group">
     <div class="loader-glow"></div>
     <img src="assets/icon_loading.svg" class="loader-icon" alt="AstarothCipher Icon" width="130" height="130" decoding="async" fetchpriority="high" draggable="false" oncontextmenu="return false;">
-    <img src="assets/text_loading.svg" class="loader-text" alt="AstarothCipher Loading" decoding="async" fetchpriority="high" draggable="false" oncontextmenu="return false;">
+  </div>
+  <div class="loading-counter" id="loadingCounter" aria-hidden="true">
+    <div class="lc-row">
+      <span class="lc-value" id="loadingCounterValue">00</span><span class="lc-percent">%</span>
+    </div>
+    <div class="lc-label" id="loadingCounterLabel">Loading Assets</div>
   </div>
 </div>
 
@@ -545,27 +566,25 @@
   let selectedFileDecrypt = null;
 
   /* ---------------------------------------------------------------
-     Asset-aware loading gate.
-     The loader now stays up until THREE things are all true, not a
+     Asset-aware loading gate + progress counter.
+     The loader stays up until THREE things are all true, not a
      hardcoded delay:
        1. The WASM crypto engine has finished initializing
        2. Every critical image asset has actually decoded
        3. Web fonts have finished loading (avoids a font-swap jump)
-     A short minimum-visible time keeps the animation from flashing
-     on fast connections, and a hard timeout guarantees the UI never
-     hangs forever if something fails to load.
+     The bottom-left counter stays at 00 until the main icon asset has
+     loaded, then climbs toward 100 as real checkpoints complete, with
+     a gentle simulated trickle so it never looks frozen while the
+     (unmeasurable) WASM engine boots. It always lands on exactly 100
+     right as the loader bursts.
   --------------------------------------------------------------- */
   const LOADER_MIN_VISIBLE_MS = 900;
   const LOADER_HARD_TIMEOUT_MS = 12000;
   const loadStart = performance.now();
   let loaderFinished = false;
 
-  const criticalAssets = [
-    'assets/icon_loading.svg',
-    'assets/text_loading.svg',
-    'assets/text_icon.svg',
-    'assets/center_align.svg'
-  ];
+  const iconAsset = 'assets/icon_loading.svg';
+  const otherAssets = ['assets/text_icon.svg', 'assets/center_align.svg'];
 
   function preloadImage(src) {
     return new Promise((resolve) => {
@@ -577,13 +596,67 @@
     });
   }
 
-  const assetsReady = Promise.all(criticalAssets.map(preloadImage));
+  const iconReady = preloadImage(iconAsset);
+  const otherAssetsReady = Promise.all(otherAssets.map(preloadImage));
+  const assetsReady = Promise.all([iconReady, otherAssetsReady]);
   const fontsReady = (document.fonts && document.fonts.ready)
     ? document.fonts.ready.catch(() => {})
     : Promise.resolve();
 
   let resolveWasmReady;
   const wasmReady = new Promise((resolve) => { resolveWasmReady = resolve; });
+
+  // ---- Progress counter ----
+  const counterEl = document.getElementById('loadingCounter');
+  const counterValueEl = document.getElementById('loadingCounterValue');
+  const counterLabelEl = document.getElementById('loadingCounterLabel');
+  let targetProgress = 0;
+  let displayedProgress = 0;
+  let progressRafId = null;
+
+  function setTarget(p) {
+    targetProgress = Math.max(targetProgress, Math.min(100, p));
+  }
+
+  function renderProgress() {
+    displayedProgress += (targetProgress - displayedProgress) * 0.15;
+    if (Math.abs(targetProgress - displayedProgress) < 0.1) displayedProgress = targetProgress;
+    const shown = Math.max(0, Math.min(100, Math.round(displayedProgress)));
+    const text = String(shown).padStart(2, '0');
+    if (counterValueEl.textContent !== text) counterValueEl.textContent = text;
+    if (!loaderFinished || displayedProgress < targetProgress) {
+      progressRafId = requestAnimationFrame(renderProgress);
+    } else {
+      progressRafId = null;
+    }
+  }
+
+  iconReady.then(() => {
+    if (prefersReducedMotion) return; // keep the UI minimal for reduced-motion users
+    counterEl.classList.add('visible');
+    setTarget(8);
+    renderProgress();
+
+    // Gentle simulated trickle toward 85% while the WASM engine boots —
+    // there's no real progress event for it, so this just keeps the
+    // counter feeling alive instead of sitting frozen for a few seconds.
+    const trickle = setInterval(() => {
+      if (loaderFinished) { clearInterval(trickle); return; }
+      if (targetProgress < 85) {
+        setTarget(targetProgress + (85 - targetProgress) * 0.12 + 0.4);
+      } else {
+        clearInterval(trickle);
+      }
+    }, 200);
+
+    otherAssetsReady.then(() => { setTarget(35); counterLabelEl.textContent = 'Loading Fonts'; });
+    fontsReady.then(() => { setTarget(55); counterLabelEl.textContent = 'Starting Engine'; });
+    wasmReady.then(() => {
+      clearInterval(trickle);
+      setTarget(100);
+      counterLabelEl.textContent = 'Ready';
+    });
+  });
 
   function finishLoading() {
     if (loaderFinished) return;
@@ -595,6 +668,8 @@
     const remainingMin = Math.max(0, LOADER_MIN_VISIBLE_MS - elapsed);
 
     setTimeout(() => {
+      counterEl.classList.remove('visible');
+
       if (prefersReducedMotion) {
         loader.style.transition = 'opacity .3s ease';
         loader.style.opacity = '0';
