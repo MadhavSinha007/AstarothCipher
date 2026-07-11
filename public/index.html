@@ -376,15 +376,19 @@ async function generateKeys() {
     btn.innerHTML = '<span>Generating...</span>';
 
     try {
-        // Ensure cppEngine is loaded
         if (typeof cppEngine === 'undefined') throw new Error("WASM Engine not loaded.");
 
         // Run the generator
         cppEngine.generateKeys(2048);
         
-        // Fetch strings
-        const priv = cppEngine.getPrivKey();
-        const pub = cppEngine.getPubKey();
+        // Fetch raw byte arrays (Bypasses the Emscripten TextDecoder crash)
+        const privBytes = cppEngine.getPrivKey();
+        const pubBytes = cppEngine.getPubKey();
+
+        // Safely decode the isolated bytes into strings
+        const decoder = new TextDecoder('utf-8');
+        const priv = decoder.decode(privBytes);
+        const pub = decoder.decode(pubBytes);
 
         document.getElementById('privKey').value = priv;
         document.getElementById('pubKey').value = pub;

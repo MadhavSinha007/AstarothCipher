@@ -16,7 +16,6 @@ using namespace emscripten;
 static std::string last_priv;
 static std::string last_pub;
 
-// Manual OpenSSL Init: Bypasses filesystem config loading
 void init_openssl_if_needed() {
     static bool initialized = false;
     if (!initialized) {
@@ -47,10 +46,17 @@ void generate_keys_js(int bits) {
     BIO_free(pub_bio);
 }
 
-std::string get_priv_key() { return last_priv; }
-std::string get_pub_key() { return last_pub; }
+// BULLETPROOF STRING EXTRACTION: Copy string to isolated JS Uint8Array
+val string_to_js_array(const std::string& str) {
+    val memory_view = val(typed_memory_view(str.size(), str.data()));
+    val js_array = val::global("Uint8Array").new_(str.size());
+    js_array.call<void>("set", memory_view);
+    return js_array;
+}
 
-// Bindings
+val get_priv_key() { return string_to_js_array(last_priv); }
+val get_pub_key() { return string_to_js_array(last_pub); }
+
 EMSCRIPTEN_BINDINGS(hybrid_crypto_module) {
     function("generateKeys", &generate_keys_js);
     function("getPrivKey", &get_priv_key);
