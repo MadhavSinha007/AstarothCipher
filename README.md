@@ -1,10 +1,12 @@
 # AstarothCipher
 
+<div align="center">
+
 ![C++17](https://img.shields.io/badge/C++-17-blue.svg?style=flat-square&logo=c%2B%2B)
 ![WebAssembly](https://img.shields.io/badge/WebAssembly-WASM-654FF0.svg?style=flat-square&logo=webassembly)
 ![OpenSSL](https://img.shields.io/badge/OpenSSL-3.3.1-721412.svg?style=flat-square&logo=openssl)
-![JavaScript](https://img.shields.io/badge/JavaScript-ES6-F7DF1E.svg?style=flat-square&logo=javascript)
-![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)
+
+</div>
 
 A zero-knowledge, client-side cryptographic engine engineered to provide secure file exchange over untrusted channels. Built with C++ and OpenSSL, and compiled to WebAssembly (WASM), AstarothCipher executes complex cryptographic operations entirely within the browser's local memory heap. 
 

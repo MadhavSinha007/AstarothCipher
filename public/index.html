@@ -80,16 +80,18 @@
     .bg-watermark.visible { opacity: 0.18; }
 
     /* CINEMATIC FULLSCREEN LOADER */
+    /* No backdrop-filter here on purpose: blurring the whole viewport
+       every frame while children animate is one of the heaviest things
+       you can ask a GPU to do. A solid near-opaque background reads the
+       same visually but costs nothing to composite. */
     #globalLoader {
       position: fixed; inset: 0; z-index: 9999;
-      background: rgba(250, 247, 243, 0.95);
-      backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+      background: #faf7f3;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      transition: background 1.2s ease, backdrop-filter 1.2s ease;
+      transition: opacity .5s ease-out;
     }
     #globalLoader.ready {
-      background: transparent;
-      backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px);
+      opacity: 0;
       pointer-events: none;
     }
 
@@ -98,22 +100,41 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
 
+    /* Static-blur glow layer: the blur itself is computed once (not
+       animated), only opacity/transform move — this is compositor-only
+       and essentially free, unlike animating `filter` every frame. */
+    .loader-glow {
+      position: absolute; top: 65px; left: 50%;
+      width: 190px; height: 190px;
+      transform: translate(-50%, -50%) scale(0.85) translateZ(0);
+      background: radial-gradient(circle, rgba(163,128,63,.65), rgba(163,128,63,0) 70%);
+      filter: blur(18px);
+      opacity: .4;
+      z-index: 1;
+      pointer-events: none;
+      animation: glow-pulse 1.6s ease-in-out infinite;
+    }
+    #globalLoader.ready .loader-glow {
+      animation: glow-burst .6s ease-out forwards !important;
+    }
+
     .loader-icon {
       width: 130px; height: 130px;
       z-index: 2; position: relative;
-      animation: spicy-heartbeat 1.2s cubic-bezier(0.25, 1.5, 0.5, 1) infinite;
+      transform: translateZ(0);
+      animation: spicy-heartbeat 1.6s ease-in-out infinite;
     }
     
     #globalLoader.ready .loader-icon {
-      animation: cinematic-burst 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
+      animation: cinematic-burst .6s ease-out forwards !important;
     }
 
     .loader-text {
       width: 220px; margin-top: 15px;
       z-index: 1; position: absolute; top: 110px;
-      animation: text-slide-down 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards,
-                 text-pulse 1.2s ease-in-out infinite 1.2s; 
-      transition: opacity 0.4s ease;
+      animation: text-slide-down .6s ease-out forwards,
+                 text-pulse 1.6s ease-in-out infinite .6s; 
+      transition: opacity 0.3s ease-out;
       opacity: 0; 
     }
     
@@ -121,25 +142,32 @@
       opacity: 0 !important;
     }
 
-    /* Keyframes */
+    /* Keyframes — transform/opacity only, no per-frame filter recompute,
+       simple two-stop pulses with plain easing (cheap for the browser
+       to evaluate, no overshoot/direction-reversal complexity). */
+    @keyframes glow-pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(0.85) translateZ(0); opacity: .35; }
+      50% { transform: translate(-50%, -50%) scale(1.15) translateZ(0); opacity: .7; }
+    }
+    @keyframes glow-burst {
+      0% { transform: translate(-50%, -50%) scale(1) translateZ(0); opacity: .5; }
+      100% { transform: translate(-50%, -50%) scale(5) translateZ(0); opacity: 0; }
+    }
     @keyframes spicy-heartbeat {
-      0% { transform: scale(0.9); filter: drop-shadow(0 0 10px rgba(163,128,63,0.4)); }
-      15% { transform: scale(1.25); filter: drop-shadow(0 0 45px rgba(163,128,63,1)); }
-      30% { transform: scale(1.05); filter: drop-shadow(0 0 20px rgba(163,128,63,0.6)); }
-      45% { transform: scale(1.25); filter: drop-shadow(0 0 45px rgba(163,128,63,1)); }
-      100% { transform: scale(0.9); filter: drop-shadow(0 0 10px rgba(163,128,63,0.4)); }
+      0%, 100% { transform: scale(0.94) translateZ(0); }
+      50% { transform: scale(1.1) translateZ(0); }
     }
     @keyframes cinematic-burst {
-      0% { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 30px rgba(163,128,63,0.8)); }
-      100% { transform: scale(12); opacity: 0; filter: drop-shadow(0 0 0px rgba(163,128,63,0)); }
+      0% { transform: scale(1.05) translateZ(0); opacity: 1; }
+      100% { transform: scale(8) translateZ(0); opacity: 0; }
     }
     @keyframes text-slide-down {
-      0% { transform: translateY(-30px); opacity: 0; filter: blur(5px); }
-      100% { transform: translateY(0); opacity: 1; filter: blur(0px); }
+      0% { transform: translateY(-16px) translateZ(0); opacity: 0; }
+      100% { transform: translateY(0) translateZ(0); opacity: 1; }
     }
     @keyframes text-pulse {
-      0%, 100% { opacity: 0.6; transform: translateY(0); filter: drop-shadow(0 0 0 rgba(0,0,0,0));}
-      50% { opacity: 1; transform: translateY(-4px); filter: drop-shadow(0 8px 16px rgba(163,128,63,0.35)); }
+      0%, 100% { opacity: 0.6; transform: translateY(0) translateZ(0); }
+      50% { opacity: 1; transform: translateY(-3px) translateZ(0); }
     }
 
     /* header */
@@ -247,9 +275,24 @@
     .doc-alert div { font-size: 0.78rem; line-height: 1.4; color: var(--text-muted); }
     .doc-alert strong { color: var(--text); }
 
+    /* Perf: isolate paint/layout for panels that animate independently */
+    .view-card, .doc-view { contain: layout style paint; }
+    .loader-icon, .loader-text, .loader-glow, .bg-watermark { will-change: transform, opacity; }
+    .side-drawer { will-change: transform; }
+
+    /* Respect users who prefer reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      .loader-icon{ animation: none !important; }
+      .loader-glow{ animation: none !important; opacity: 0 !important; }
+      .view-section{ animation: none !important; }
+      .side-drawer.open{ animation: none !important; transform: translateX(0) !important; }
+      .drawer-overlay.open{ animation: none !important; }
+      .loader-text{ animation: none !important; opacity: 1 !important; transform:none !important; filter:none !important; }
+    }
+
     /* Mobile Responsive */
     @media (max-width: 820px){ 
-      .dashboard-container { overflow-y: auto; align-items: flex-start; }
+      .dashboard-container { overflow-y: auto; align-items: flex-start; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
       .doc-view { grid-template-columns: 1fr; padding: 1.5rem; gap: 1rem; }
     }
     @media (max-width: 560px){
@@ -279,15 +322,16 @@
 <!-- CINEMATIC LOADING SCREEN -->
 <div id="globalLoader">
   <div class="loader-center-group">
-    <img src="assets/icon_loading.svg" class="loader-icon" alt="AstarothCipher Icon" draggable="false" oncontextmenu="return false;">
-    <img src="assets/text_loading.svg" class="loader-text" alt="AstarothCipher Loading" draggable="false" oncontextmenu="return false;">
+    <div class="loader-glow"></div>
+    <img src="assets/icon_loading.svg" class="loader-icon" alt="AstarothCipher Icon" width="130" height="130" decoding="async" fetchpriority="high" draggable="false" oncontextmenu="return false;">
+    <img src="assets/text_loading.svg" class="loader-text" alt="AstarothCipher Loading" decoding="async" fetchpriority="high" draggable="false" oncontextmenu="return false;">
   </div>
 </div>
 
 <header>
   <div class="header-container">
     <div class="nav-brand">
-      <img src="assets/text_icon.svg" class="brand-mark" alt="AstarothCipher logo" onerror="this.style.display='none'" draggable="false" oncontextmenu="return false;">
+      <img src="assets/text_icon.svg" class="brand-mark" alt="AstarothCipher logo" decoding="async" onerror="this.style.display='none'" draggable="false" oncontextmenu="return false;">
     </div>
     <div class="status-indicator" id="engineStatus">
       <i data-lucide="loader" class="spin" size="14"></i> Initializing...
@@ -336,7 +380,7 @@
     <div class="doc-view">
       
       <div class="doc-header">
-        <img src="assets/center_align.svg" alt="AstarothCipher Big Logo" draggable="false" oncontextmenu="return false;">
+        <img src="assets/center_align.svg" alt="AstarothCipher Big Logo" decoding="async" draggable="false" oncontextmenu="return false;">
         <h1>AstarothCipher Protocol</h1>
         <div class="doc-subtitle">Local-first, zero-knowledge cryptographic file exchange.</div>
       </div>
@@ -487,6 +531,8 @@
 </main>
 
 <script>
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   lucide.createIcons();
 
   // Firefox bfcache fix: Force clear all fields on reload
@@ -498,51 +544,101 @@
   let selectedFileEncrypt = null;
   let selectedFileDecrypt = null;
 
+  /* ---------------------------------------------------------------
+     Asset-aware loading gate.
+     The loader now stays up until THREE things are all true, not a
+     hardcoded delay:
+       1. The WASM crypto engine has finished initializing
+       2. Every critical image asset has actually decoded
+       3. Web fonts have finished loading (avoids a font-swap jump)
+     A short minimum-visible time keeps the animation from flashing
+     on fast connections, and a hard timeout guarantees the UI never
+     hangs forever if something fails to load.
+  --------------------------------------------------------------- */
+  const LOADER_MIN_VISIBLE_MS = 900;
+  const LOADER_HARD_TIMEOUT_MS = 12000;
+  const loadStart = performance.now();
+  let loaderFinished = false;
+
+  const criticalAssets = [
+    'assets/icon_loading.svg',
+    'assets/text_loading.svg',
+    'assets/text_icon.svg',
+    'assets/center_align.svg'
+  ];
+
+  function preloadImage(src) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.decoding = 'async';
+      img.onload = resolve;
+      img.onerror = resolve; // a missing/broken asset should never hang the loader
+      img.src = src;
+    });
+  }
+
+  const assetsReady = Promise.all(criticalAssets.map(preloadImage));
+  const fontsReady = (document.fonts && document.fonts.ready)
+    ? document.fonts.ready.catch(() => {})
+    : Promise.resolve();
+
+  let resolveWasmReady;
+  const wasmReady = new Promise((resolve) => { resolveWasmReady = resolve; });
+
+  function finishLoading() {
+    if (loaderFinished) return;
+    loaderFinished = true;
+
+    const loader = document.getElementById('globalLoader');
+    const bgWatermark = document.querySelector('.bg-watermark');
+    const elapsed = performance.now() - loadStart;
+    const remainingMin = Math.max(0, LOADER_MIN_VISIBLE_MS - elapsed);
+
+    setTimeout(() => {
+      if (prefersReducedMotion) {
+        loader.style.transition = 'opacity .3s ease';
+        loader.style.opacity = '0';
+        bgWatermark.classList.add('visible');
+        setTimeout(() => { loader.style.display = 'none'; }, 320);
+        return;
+      }
+
+      // Cinematic handoff: burst the loader icon, fade in the watermark
+      loader.classList.add('ready');
+      bgWatermark.classList.add('visible');
+      setTimeout(() => { loader.style.display = 'none'; }, 650);
+    }, remainingMin);
+  }
+
+  Promise.all([assetsReady, fontsReady, wasmReady]).then(finishLoading);
+
+  // Absolute fallback so the loader never gets stuck
+  setTimeout(() => {
+    const status = document.getElementById('engineStatus');
+    if (!cppEngine && status.innerHTML.includes('Initializing')) {
+      status.innerHTML = '<i data-lucide="alert-circle" size="14" style="color: var(--danger);"></i> Engine timeout';
+      status.style.borderColor = 'var(--danger)';
+      lucide.createIcons();
+    }
+    finishLoading();
+  }, LOADER_HARD_TIMEOUT_MS);
+
   var Module = {
     onRuntimeInitialized: function () {
       cppEngine = Module;
       const status = document.getElementById('engineStatus');
       status.innerHTML = '<i data-lucide="check-circle" size="14" style="color: var(--success);"></i> System Ready';
       lucide.createIcons();
-      
-      const loader = document.getElementById('globalLoader');
-      const bgWatermark = document.querySelector('.bg-watermark');
-
-      // The Cinematic Handoff Sequence
-      setTimeout(() => {
-        
-        // 1. Trigger the massive burst & fade out of the loader icon
-        loader.classList.add('ready'); 
-        
-        // 2. Simultaneously fade in the actual permanent watermark
-        bgWatermark.classList.add('visible'); 
-        
-        // 3. Remove the loader container ONLY after the 1.2s CSS transition is fully finished
-        setTimeout(() => {
-          loader.style.display = 'none'; 
-        }, 1300); 
-
-      }, 1400); // Let them admire the sliding text before triggering the burst
+      resolveWasmReady();
     },
     onAbort: function (err) {
       const status = document.getElementById('engineStatus');
       status.innerHTML = '<i data-lucide="alert-circle" size="14" style="color: var(--danger);"></i> Engine Error';
       status.style.borderColor = 'var(--danger)';
       console.error('WASM Engine failed to load:', err);
-      
-      document.getElementById('globalLoader').style.display = 'none';
+      resolveWasmReady(); // don't let a failed engine hold the loader up forever
     }
   };
-
-  // Timeout fallback for loader
-  setTimeout(() => {
-    const status = document.getElementById('engineStatus');
-    if (!cppEngine && status.innerHTML.includes('Initializing')) {
-      status.innerHTML = '<i data-lucide="alert-circle" size="14" style="color: var(--danger);"></i> Engine timeout';
-      status.style.borderColor = 'var(--danger)';
-      document.getElementById('globalLoader').style.display = 'none';
-    }
-  }, 8000);
 </script>
 
 <script src="crypto_engine.js"></script>
