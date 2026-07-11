@@ -1,8 +1,0 @@
-{
-  "name": "astaroth-cipher",
-  "version": "1.0.0",
-  "description": "Zero-knowledge encryption",
-  "scripts": {
-    "build": "echo 'Nothing to build, files are static'"
-  }
-}
