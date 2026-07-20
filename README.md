@@ -2,6 +2,9 @@
 
 <div align="center">
 
+<img src="/public/assets/astarothcipher_banner.png" alt="BelialZip Banner" width="100%">
+<br>
+
 ![C++17](https://img.shields.io/badge/C++-17-blue.svg?style=flat-square&logo=c%2B%2B)
 ![WebAssembly](https://img.shields.io/badge/WebAssembly-WASM-654FF0.svg?style=flat-square&logo=webassembly)
 ![OpenSSL](https://img.shields.io/badge/OpenSSL-3.3.1-721412.svg?style=flat-square&logo=openssl)
